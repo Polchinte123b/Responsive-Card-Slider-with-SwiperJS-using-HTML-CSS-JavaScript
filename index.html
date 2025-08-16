@@ -1,247 +1,496 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Card Slider(SwiperJS) - Tivotal</title>
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bingo 1–90 Caller</title>
+  <style>
+    :root{
+      --bg:#0e1020; --panel:#171a36; --panel-2:#1f2351; --text:#eaf0ff; --muted:#9ea7c7; --line:#2a2f66;
+      --accent:#7c5cff; --accent-2:#2dd4bf; --danger:#ff5678; --ok:#5af08a;
+      /* decade colors (1–10,11–20,...,81–90) */
+      --d0:#ff6b6b; --d1:#f59e0b; --d2:#facc15; --d3:#22c55e; --d4:#10b981;
+      --d5:#06b6d4; --d6:#3b82f6; --d7:#8b5cf6; --d8:#ec4899;
+      --shadow:0 10px 25px rgba(0,0,0,.25);
+      --radius:14px;
+    }
+    [data-theme="light"]{
+      --bg:#f5f7ff; --panel:#ffffff; --panel-2:#eef1ff; --text:#0f1322; --muted:#5b6280; --line:#dee3ff;
+      --shadow:0 10px 25px rgba(20,22,60,.12);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; background:radial-gradient(1200px 800px at 80% -10%, #22275a 0%, transparent 60%) ,var(--bg);
+      color:var(--text); font:500 16px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial;
+      min-height:100svh; display:grid; grid-template-rows:auto auto 1fr auto; gap:18px; padding:18px; }
+    header{display:flex; align-items:center; gap:16px; flex-wrap:wrap}
+    .brand{display:flex; align-items:center; gap:12px}
+    .badge{
+      width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      display:grid;place-items:center; box-shadow:var(--shadow); font-weight:800; color:white;
+    }
+    h1{font-size:20px;margin:0}
+    .controls{
+      display:flex; flex-wrap:wrap; gap:10px; margin-left:auto
+    }
+    button, .chip, select, .switch{
+      border:1px solid var(--line); background:var(--panel); color:var(--text);
+      padding:10px 14px; border-radius:12px; cursor:pointer; transition:.2s transform,.2s background,.2s border-color;
+    }
+    button:hover{transform:translateY(-1px); background:var(--panel-2)}
+    button:disabled{opacity:.45; cursor:not-allowed; transform:none}
+    .primary{background:linear-gradient(135deg,var(--accent),var(--accent-2)); border:0; color:#fff}
+    .danger{background:var(--danger); border:0; color:#fff}
+    .ok{background:var(--ok); border:0; color:#06220f}
+    .switch{display:flex; align-items:center; gap:8px; padding:8px 12px}
+    .switch input{accent-color:var(--accent)}
+    .bar{
+      background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; height:12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .bar > i{display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+    .wrap{
+      display:grid; grid-template-columns: min(460px,100%) 1fr; gap:18px;
+    }
+    .current{
+      background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+      padding:18px; box-shadow:var(--shadow); display:grid; gap:14px; align-content:start;
+    }
+    .big{
+      font-size: clamp(54px, 10vw, 96px);
+      line-height:1; font-weight:900; letter-spacing:.02em;
+      display:flex; align-items:baseline; gap:14px;
+    }
+    .big small{font-size: clamp(14px, 2.5vw, 20px); color:var(--muted); font-weight:700}
+    .history{display:flex; flex-wrap:wrap; gap:8px}
+    .chip{background:var(--panel-2); font-weight:700; min-width:44px; text-align:center}
+    .legend{display:flex; flex-wrap:wrap; gap:8px}
+    .legend .chip{color:#fff; border:0}
+    .legend .chip i{opacity:.8; font-weight:600}
+    .board{
+      background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+      padding:14px; box-shadow:var(--shadow);
+    }
+    .grid{
+      display:grid; grid-template-columns: repeat(10, 1fr); gap:8px;
+    }
+    .cell{
+      position:relative;
+      display:grid; place-items:center; aspect-ratio:1.25/1; /* wider cells; fits 10x9 nicely */
+      border:1px solid var(--line); border-radius:10px; background:var(--panel-2);
+      font-weight:800; font-size: clamp(16px, 2.2vw, 24px);
+      user-select:none;
+      transition:background .15s, transform .15s, scale .15s, border-color .15s, color .15s;
+      color:var(--text);
+      overflow:hidden;
+    }
+    .cell .dot{
+      position:absolute; inset:auto 8px 8px auto; width:10px;height:10px;border-radius:50%;
+      opacity:.9;
+    }
+    .cell.called{color:#fff; border-color:transparent; transform:translateY(-1px); }
+    .cell.current{outline:3px solid rgba(255,255,255,.85); box-shadow:0 0 0 3px rgba(0,0,0,.25) inset}
+    .grid:has(.cell.current){scroll-margin-top:80px}
+    .pane{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center
+    }
+    .grow{flex:1 1 auto}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    label{color:var(--muted); font-weight:600}
+    input[type="range"]{width:160px}
+    footer{display:flex; gap:10px; align-items:center; color:var(--muted); flex-wrap:wrap}
+    footer a{color:inherit; text-decoration:underline dotted}
+    /* decade background helpers */
+    .bg-d0{background:var(--d0)} .bg-d1{background:var(--d1)} .bg-d2{background:var(--d2)}
+    .bg-d3{background:var(--d3)} .bg-d4{background:var(--d4)} .bg-d5{background:var(--d5)}
+    .bg-d6{background:var(--d6)} .bg-d7{background:var(--d7)} .bg-d8{background:var(--d8)}
+    /* dot color only */
+    .dot-d0{background:var(--d0)} .dot-d1{background:var(--d1)} .dot-d2{background:var(--d2)}
+    .dot-d3{background:var(--d3)} .dot-d4{background:var(--d4)} .dot-d5{background:var(--d5)}
+    .dot-d6{background:var(--d6)} .dot-d7{background:var(--d7)} .dot-d8{background:var(--d8)}
+    .kbd{padding:.25em .5em;border-radius:6px;border:1px solid var(--line);background:var(--panel-2); color:var(--muted); font-weight:700}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="badge">90</div>
+      <div>
+        <h1>Bingo / Housie Caller</h1>
+        <div style="color:var(--muted);font-weight:600;">Numbers 1–90 • Rainbow decades</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="btnPrev" title="Undo (Z)">Undo</button>
+      <button id="btnNext" class="primary" title="Next (Space)">Next</button>
+      <button id="btnAuto" class="ok" title="Toggle Auto (A)">Auto: Off</button>
+      <button id="btnReset" class="danger" title="Reset (R)">Reset</button>
+    </div>
+  </header>
 
-    <!--swiper-->
-    <link rel="stylesheet" href="swiper/swiper-bundle.min.css" />
+  <div class="pane">
+    <div class="row">
+      <label for="speed">Speed</label>
+      <input id="speed" type="range" min="0.8" max="8" step="0.2" value="3">
+      <span id="speedLbl" class="chip">3s</span>
+    </div>
+    <div class="row">
+      <label for="theme">Theme</label>
+      <select id="theme">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+    </div>
+    <label class="switch"><input id="voice" type="checkbox"> Voice</label>
+    <div class="grow"></div>
+    <div class="row" title="Progress">
+      <div class="bar" style="width:min(440px,60vw)"><i id="progress"></i></div>
+      <span id="count" class="chip">0 / 90</span>
+    </div>
+  </div>
 
-    <!--css file-->
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div class="slider-container swiper">
-      <div class="slider-content">
-        <div class="card-wrapper swiper-wrapper">
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic1.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">Mary</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
-
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic2.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">David</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
-
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic3.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">Christy</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
-
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic4.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">Joseph</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
-
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic5.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">Nancy</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
-
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic6.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">Meera</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
-
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic7.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">Thomas</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
-
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic8.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">Emma</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
-
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic9.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">Linda</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
-
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic10.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">Sarah</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
-
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic11.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">Lisa</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
-
-          <div class="card swiper-slide">
-            <div class="image-content">
-              <span class="overlay"></span>
-              <div class="card-image">
-                <img src="images/pic12.jpg" alt="" />
-              </div>
-            </div>
-            <div class="card-content">
-              <h2 class="name">Sandra</h2>
-              <p class="description">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Magnam,
-                quas. Modi suscipit animi quas praesentium dolore excepturi,
-                magnam ullam facilis!
-              </p>
-              <button class="button">Read More</button>
-            </div>
-          </div>
+  <div class="wrap">
+    <section class="current">
+      <div class="big"><span id="current">—</span> <small id="pronounce"></small></div>
+      <div>
+        <div style="font-weight:700;margin-bottom:8px">Last calls</div>
+        <div id="history" class="history"></div>
+      </div>
+      <div>
+        <div style="font-weight:700;margin-bottom:8px">Decade colors</div>
+        <div class="legend">
+          <span class="chip" style="background:var(--d0)">1–10</span>
+          <span class="chip" style="background:var(--d1)">11–20</span>
+          <span class="chip" style="background:var(--d2)">21–30</span>
+          <span class="chip" style="background:var(--d3)">31–40</span>
+          <span class="chip" style="background:var(--d4)">41–50</span>
+          <span class="chip" style="background:var(--d5)">51–60</span>
+          <span class="chip" style="background:var(--d6)">61–70</span>
+          <span class="chip" style="background:var(--d7)">71–80</span>
+          <span class="chip" style="background:var(--d8)">81–90</span>
         </div>
       </div>
+      <div class="row" style="color:var(--muted)">
+        Shortcuts:
+        <span class="kbd">Space</span> next
+        <span class="kbd">A</span> auto
+        <span class="kbd">Z</span> undo
+        <span class="kbd">R</span> reset
+      </div>
+    </section>
 
-      <div class="swiper-pagination"></div>
-      <div class="swiper-button-next swiper-navBtn"></div>
-      <div class="swiper-button-prev swiper-navBtn"></div>
-    </div>
+    <section class="board">
+      <div id="grid" class="grid" aria-label="Number board"></div>
+    </section>
+  </div>
 
-    <!--swiper-->
-    <script src="swiper/swiper-bundle.min.js"></script>
+  <footer>
+    <div style="font-weight:700">Tip:</div>
+    Use <em>Auto</em> + speed, or press <span class="kbd">Space</span> to call the next number manually. State is saved automatically.
+  </footer>
 
-    <script src="app.js"></script>
-  </body>
+<script>
+(() => {
+  const TOTAL = 90, COLS = 10, ROWS = 9;
+  const els = {
+    grid: document.getElementById('grid'),
+    current: document.getElementById('current'),
+    pronounce: document.getElementById('pronounce'),
+    history: document.getElementById('history'),
+    btnNext: document.getElementById('btnNext'),
+    btnPrev: document.getElementById('btnPrev'),
+    btnReset: document.getElementById('btnReset'),
+    btnAuto: document.getElementById('btnAuto'),
+    speed: document.getElementById('speed'),
+    speedLbl: document.getElementById('speedLbl'),
+    progress: document.getElementById('progress'),
+    count: document.getElementById('count'),
+    theme: document.getElementById('theme'),
+    voice: document.getElementById('voice')
+  };
+
+  const storeKey = 'bingo90.v1';
+  const settingsKey = 'bingo90.settings';
+  let state = {
+    pile: [],    // remaining numbers (top at end)
+    called: [],  // called numbers (last is current)
+  };
+  let timer = null;
+  let voices = [];
+  let speaking = false;
+
+  // ---------- Utilities ----------
+  const shuffle = (arr) => {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+  const decadeIndex = (n) => Math.floor((n - 1) / 10); // 0..8
+  const classForDecade = (n, prefix='bg') => `${prefix}-d${decadeIndex(n)}`;
+
+  const saveState = () => localStorage.setItem(storeKey, JSON.stringify(state));
+  const loadState = () => {
+    const saved = localStorage.getItem(storeKey);
+    if (saved) {
+      try {
+        const s = JSON.parse(saved);
+        if (Array.isArray(s.pile) && Array.isArray(s.called)) {
+          state = s;
+        }
+      } catch {}
+    }
+    if (!state.pile.length && !state.called.length) reset(true);
+  };
+
+  const saveSettings = () => {
+    localStorage.setItem(settingsKey, JSON.stringify({
+      theme: document.documentElement.getAttribute('data-theme'),
+      speed: +els.speed.value,
+      voice: !!els.voice.checked
+    }));
+  };
+  const loadSettings = () => {
+    const s = localStorage.getItem(settingsKey);
+    if (s) {
+      try {
+        const { theme, speed, voice } = JSON.parse(s);
+        if (theme) {
+          document.documentElement.setAttribute('data-theme', theme);
+          els.theme.value = theme;
+        }
+        if (speed) {
+          els.speed.value = speed;
+          els.speedLbl.textContent = `${speed}s`;
+        }
+        if (typeof voice === 'boolean') els.voice.checked = voice;
+      } catch {}
+    }
+  };
+
+  // ---------- Rendering ----------
+  const buildGrid = () => {
+    els.grid.innerHTML = '';
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const n = r * COLS + (c + 1);
+        const cell = document.createElement('button');
+        cell.className = `cell`;
+        cell.setAttribute('type','button');
+        cell.setAttribute('aria-label', `Number ${n}`);
+        cell.dataset.n = n;
+        cell.innerHTML = `<span>${n}</span><i class="dot ${'dot-'+classForDecade(n,'d')}"></i>`;
+        // hide the dot inside span, not visible text
+        cell.querySelector('.dot').classList.add(`dot-d${decadeIndex(n)}`);
+        els.grid.appendChild(cell);
+      }
+    }
+  };
+
+  const updateBoard = () => {
+    const calledSet = new Set(state.called);
+    const current = state.called[state.called.length - 1] || null;
+
+    els.grid.querySelectorAll('.cell').forEach(cell => {
+      const n = +cell.dataset.n;
+      cell.classList.toggle('called', calledSet.has(n));
+      cell.classList.toggle('current', n === current);
+      // color when called
+      cell.style.background = calledSet.has(n) ? '' : '';
+      if (calledSet.has(n)) {
+        // add decade bg class
+        cell.classList.add(classForDecade(n));
+        cell.classList.add(`bg-d${decadeIndex(n)}`);
+        cell.style.setProperty('background','');
+      } else {
+        // remove decade bg class
+        cell.classList.remove('bg-d0','bg-d1','bg-d2','bg-d3','bg-d4','bg-d5','bg-d6','bg-d7','bg-d8');
+      }
+    });
+
+    // current number display
+    if (current) {
+      els.current.textContent = current;
+      els.pronounce.textContent = pronounce(current);
+    } else {
+      els.current.textContent = '—';
+      els.pronounce.textContent = '';
+    }
+
+    // history (last 12)
+    els.history.innerHTML = '';
+    const last = state.called.slice(-12).reverse();
+    for (const n of last) {
+      const chip = document.createElement('span');
+      chip.className = `chip`;
+      chip.style.background = `var(--d${decadeIndex(n)})`;
+      chip.style.color = '#fff';
+      chip.textContent = n;
+      els.history.appendChild(chip);
+    }
+
+    // progress
+    const done = state.called.length;
+    els.count.textContent = `${done} / ${TOTAL}`;
+    els.progress.style.width = `${(done/TOTAL)*100}%`;
+
+    // buttons
+    els.btnPrev.disabled = done === 0;
+    els.btnNext.disabled = state.pile.length === 0;
+    if (state.pile.length === 0) {
+      stopAuto();
+      els.btnAuto.textContent = 'Auto: Done';
+      els.btnAuto.className = 'ok';
+    } else {
+      updateAutoButton();
+    }
+  };
+
+  // ---------- Number logic ----------
+  const reset = (silent=false) => {
+    const nums = Array.from({length: TOTAL}, (_,i) => i+1);
+    state.called = [];
+    state.pile = shuffle(nums);
+    saveState();
+    stopAuto();
+    if (!silent) toast('Shuffled a fresh deck.');
+    updateBoard();
+  };
+
+  const next = () => {
+    if (!state.pile.length) { updateBoard(); return; }
+    const n = state.pile.pop();
+    state.called.push(n);
+    saveState();
+    updateBoard();
+    if (els.voice.checked) speak(n);
+    // scroll current number into view on small screens
+    const currentCell = els.grid.querySelector('.cell.current');
+    if (currentCell && window.innerWidth < 700) currentCell.scrollIntoView({behavior:'smooth', block:'center'});
+  };
+
+  const undo = () => {
+    const n = state.called.pop();
+    if (n != null) {
+      state.pile.push(n); // return to top to replay in same order
+      saveState();
+      updateBoard();
+    }
+  };
+
+  // ---------- Auto mode ----------
+  const startAuto = () => {
+    if (timer) return;
+    const interval = Math.max(0.2, +els.speed.value) * 1000;
+    timer = setInterval(() => {
+      if (!state.pile.length) { stopAuto(); updateBoard(); return; }
+      next();
+    }, interval);
+    updateAutoButton();
+  };
+  const stopAuto = () => {
+    if (timer) { clearInterval(timer); timer = null; updateAutoButton(); }
+  };
+  const toggleAuto = () => timer ? stopAuto() : startAuto();
+  const updateAutoButton = () => {
+    if (timer) { els.btnAuto.textContent = 'Auto: On'; els.btnAuto.className = 'ok'; }
+    else { els.btnAuto.textContent = state.pile.length ? 'Auto: Off' : 'Auto: Done'; els.btnAuto.className = 'ok'; }
+  };
+
+  // ---------- Voice ----------
+  const pronounce = (n) => {
+    // Simple: return the English number string
+    return new Intl.NumberFormat('en-IN').format(n);
+  };
+
+  const loadVoices = () => {
+    voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  };
+  const speak = (n) => {
+    if (!('speechSynthesis' in window)) return;
+    if (speaking) { window.speechSynthesis.cancel(); speaking = false; }
+    const u = new SpeechSynthesisUtterance(`Number ${n}`);
+    // Prefer an English (India) or English voice if available
+    const pick = voices.find(v => /India|en-IN/i.test(v.lang||v.name)) ||
+                 voices.find(v => /^en[-_]/i.test(v.lang)) || null;
+    if (pick) u.voice = pick;
+    u.rate = 0.92; u.pitch = 1.02; u.volume = 1;
+    speaking = true;
+    u.onend = () => speaking = false;
+    try { window.speechSynthesis.speak(u); } catch {}
+  };
+
+  // ---------- Small helpers ----------
+  let toastTimer=null;
+  const toast = (msg) => {
+    if (toastTimer) clearTimeout(toastTimer);
+    let el = document.getElementById('toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'toast';
+      Object.assign(el.style, {
+        position:'fixed', left:'50%', bottom:'24px', transform:'translateX(-50%)',
+        background:'var(--panel)', color:'var(--text)', border:'1px solid var(--line)',
+        padding:'10px 14px', borderRadius:'10px', boxShadow:'var(--shadow)', zIndex:9999,
+        pointerEvents:'none'
+      });
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1';
+    toastTimer = setTimeout(()=> el.style.opacity='0', 1400);
+  };
+
+  // ---------- Wire up ----------
+  const init = () => {
+    buildGrid();
+    loadSettings();
+    loadState();
+    updateBoard();
+
+    els.btnNext.addEventListener('click', next);
+    els.btnPrev.addEventListener('click', undo);
+    els.btnReset.addEventListener('click', () => {
+      if (confirm('Reset and reshuffle all 90 numbers?')) { reset(); }
+    });
+    els.btnAuto.addEventListener('click', toggleAuto);
+
+    els.speed.addEventListener('input', () => {
+      els.speedLbl.textContent = `${els.speed.value}s`;
+      saveSettings();
+      if (timer) { stopAuto(); startAuto(); }
+    });
+
+    els.theme.addEventListener('change', () => {
+      document.documentElement.setAttribute('data-theme', els.theme.value);
+      saveSettings();
+    });
+
+    els.voice.addEventListener('change', () => {
+      if (els.voice.checked && !('speechSynthesis' in window))
+        { alert('Speech not supported in this browser.'); els.voice.checked=false; }
+      saveSettings();
+    });
+
+    // keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+      if (e.code === 'Space') { e.preventDefault(); next(); }
+      else if (e.key === 'a' || e.key === 'A') { toggleAuto(); }
+      else if (e.key === 'z' || e.key === 'Z') { undo(); }
+      else if (e.key === 'r' || e.key === 'R') { if (confirm('Reset and reshuffle all 90 numbers?')) reset(); }
+    });
+
+    // voice list ready?
+    if ('speechSynthesis' in window) {
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  };
+
+  init();
+})();
+</script>
+</body>
 </html>
