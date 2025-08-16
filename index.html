@@ -1,494 +1,270 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bingo 1–90 Caller</title>
-  <style>
-    :root{
-      --bg:#0e1020; --panel:#171a36; --panel-2:#1f2351; --text:#eaf0ff; --muted:#9ea7c7; --line:#2a2f66;
-      --accent:#7c5cff; --accent-2:#2dd4bf; --danger:#ff5678; --ok:#5af08a;
-      /* decade colors (1–10,11–20,...,81–90) */
-      --d0:#ff6b6b; --d1:#f59e0b; --d2:#facc15; --d3:#22c55e; --d4:#10b981;
-      --d5:#06b6d4; --d6:#3b82f6; --d7:#8b5cf6; --d8:#ec4899;
-      --shadow:0 10px 25px rgba(0,0,0,.25);
-      --radius:14px;
-    }
-    [data-theme="light"]{
-      --bg:#f5f7ff; --panel:#ffffff; --panel-2:#eef1ff; --text:#0f1322; --muted:#5b6280; --line:#dee3ff;
-      --shadow:0 10px 25px rgba(20,22,60,.12);
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; background:radial-gradient(1200px 800px at 80% -10%, #22275a 0%, transparent 60%) ,var(--bg);
-      color:var(--text); font:500 16px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial;
-      min-height:100svh; display:grid; grid-template-rows:auto auto 1fr auto; gap:18px; padding:18px; }
-    header{display:flex; align-items:center; gap:16px; flex-wrap:wrap}
-    .brand{display:flex; align-items:center; gap:12px}
-    .badge{
-      width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
-      display:grid;place-items:center; box-shadow:var(--shadow); font-weight:800; color:white;
-    }
-    h1{font-size:20px;margin:0}
-    .controls{
-      display:flex; flex-wrap:wrap; gap:10px; margin-left:auto
-    }
-    button, .chip, select, .switch{
-      border:1px solid var(--line); background:var(--panel); color:var(--text);
-      padding:10px 14px; border-radius:12px; cursor:pointer; transition:.2s transform,.2s background,.2s border-color;
-    }
-    button:hover{transform:translateY(-1px); background:var(--panel-2)}
-    button:disabled{opacity:.45; cursor:not-allowed; transform:none}
-    .primary{background:linear-gradient(135deg,var(--accent),var(--accent-2)); border:0; color:#fff}
-    .danger{background:var(--danger); border:0; color:#fff}
-    .ok{background:var(--ok); border:0; color:#06220f}
-    .switch{display:flex; align-items:center; gap:8px; padding:8px 12px}
-    .switch input{accent-color:var(--accent)}
-    .bar{
-      background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; height:12px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
-    }
-    .bar > i{display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2))}
-    .wrap{
-      display:grid; grid-template-columns: min(460px,100%) 1fr; gap:18px;
-    }
-    .current{
-      background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
-      padding:18px; box-shadow:var(--shadow); display:grid; gap:14px; align-content:start;
-    }
-    .big{
-      font-size: clamp(54px, 10vw, 96px);
-      line-height:1; font-weight:900; letter-spacing:.02em;
-      display:flex; align-items:baseline; gap:14px;
-    }
-    .big small{font-size: clamp(14px, 2.5vw, 20px); color:var(--muted); font-weight:700}
-    .history{display:flex; flex-wrap:wrap; gap:8px}
-    .chip{background:var(--panel-2); font-weight:700; min-width:44px; text-align:center}
-    .legend{display:flex; flex-wrap:wrap; gap:8px}
-    .legend .chip{color:#fff; border:0}
-    .legend .chip i{opacity:.8; font-weight:600}
-    .board{
-      background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
-      padding:14px; box-shadow:var(--shadow);
-    }
-    .grid{
-      display:grid; grid-template-columns: repeat(10, 1fr); gap:8px;
-    }
-    .cell{
-      position:relative;
-      display:grid; place-items:center; aspect-ratio:1.25/1; /* wider cells; fits 10x9 nicely */
-      border:1px solid var(--line); border-radius:10px; background:var(--panel-2);
-      font-weight:800; font-size: clamp(16px, 2.2vw, 24px);
-      user-select:none;
-      transition:background .15s, transform .15s, scale .15s, border-color .15s, color .15s;
-      color:var(--text);
-      overflow:hidden;
-    }
-    .cell .dot{
-      position:absolute; inset:auto 8px 8px auto; width:10px;height:10px;border-radius:50%;
-      opacity:.9;
-    }
-    .cell.called{color:#fff; border-color:transparent; transform:translateY(-1px); }
-    .cell.current{outline:3px solid rgba(255,255,255,.85); box-shadow:0 0 0 3px rgba(0,0,0,.25) inset}
-    .grid:has(.cell.current){scroll-margin-top:80px}
-    .pane{
-      display:flex; flex-wrap:wrap; gap:10px; align-items:center
-    }
-    .grow{flex:1 1 auto}
-    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    label{color:var(--muted); font-weight:600}
-    input[type="range"]{width:160px}
-    footer{display:flex; gap:10px; align-items:center; color:var(--muted); flex-wrap:wrap}
-    footer a{color:inherit; text-decoration:underline dotted}
-    /* decade background helpers */
-    .bg-d0{background:var(--d0)} .bg-d1{background:var(--d1)} .bg-d2{background:var(--d2)}
-    .bg-d3{background:var(--d3)} .bg-d4{background:var(--d4)} .bg-d5{background:var(--d5)}
-    .bg-d6{background:var(--d6)} .bg-d7{background:var(--d7)} .bg-d8{background:var(--d8)}
-    /* dot color only */
-    .dot-d0{background:var(--d0)} .dot-d1{background:var(--d1)} .dot-d2{background:var(--d2)}
-    .dot-d3{background:var(--d3)} .dot-d4{background:var(--d4)} .dot-d5{background:var(--d5)}
-    .dot-d6{background:var(--d6)} .dot-d7{background:var(--d7)} .dot-d8{background:var(--d8)}
-    .kbd{padding:.25em .5em;border-radius:6px;border:1px solid var(--line);background:var(--panel-2); color:var(--muted); font-weight:700}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bingo 1–90 • Orange UI</title>
+<style>
+  :root{
+    --orange1:#ff8a00; --orange2:#ff6a00; --deep:#151515; --text:#1a1a1a; --muted:#666;
+    --panel:#ffffff; --line:#e9e9e9; --ok:#16a34a; --danger:#ef4444; --accent:#0ea5e9;
+  }
+  *{box-sizing:border-box} body{margin:0;font:600 16px/1.3 system-ui,Segoe UI,Roboto,Inter,Arial;background:#fafafa;color:var(--text)}
+  .topbar{
+    background:linear-gradient(135deg,var(--orange1),var(--orange2));
+    color:#fff; padding:10px 14px; position:sticky; top:0; z-index:5;
+    display:flex; align-items:center; gap:10px;
+  }
+  .topbar .btn{background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35); color:#fff;
+    padding:8px 12px; border-radius:10px; font-weight:700}
+  .wrap{padding:12px}
+  /* hero */
+  .hero{
+    border-radius:18px; overflow:hidden; background:linear-gradient(135deg,var(--orange1),var(--orange2));
+    color:#fff; position:relative; padding:18px 14px 28px; min-height:220px;
+  }
+  .hero-grid{
+    display:grid; grid-template-columns: 120px 1fr 120px; align-items:center; gap:10px;
+  }
+  @media (min-width:720px){ .hero-grid{grid-template-columns: 160px 1fr 160px;} }
+  .ball{
+    width:120px;height:120px;border-radius:50%; margin:0 auto; display:grid; place-items:center; font-size:54px;
+    background:
+      radial-gradient(circle at 35% 30%, #fff 0 35%, #f1f1f1 60%, #e6e6e6 72%),
+      radial-gradient(160px 100px at 50% 70%, rgba(0,0,0,.25), rgba(0,0,0,0) 60%);
+    color:#e01919; font-weight:900; box-shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  @media (min-width:720px){ .ball{width:160px;height:160px;font-size:72px} }
+  .side-bubble{
+    width:86px;height:86px;border-radius:50%; display:grid; place-items:center; font-size:34px; font-weight:900;
+    color:#222;
+    background:
+      radial-gradient(circle at 35% 30%, #fff 0 35%, #f0f0f0 60%, #e6e6e6 72%);
+    box-shadow:0 10px 20px rgba(0,0,0,.18);
+  }
+  .side-wrap{display:flex; justify-content:flex-end; gap:10px}
+  .stat-col{
+    position:absolute; left:10px; top:14px; display:flex; flex-direction:column; gap:10px; pointer-events:none;
+  }
+  .pill{
+    pointer-events:auto;
+    background:rgba(255,255,255,.95); color:#d35400; border-radius:10px; padding:10px 12px; min-width:155px;
+    box-shadow:0 6px 16px rgba(0,0,0,.15); border:1px solid rgba(0,0,0,.05);
+  }
+  .pill b{display:block; color:#222; font-size:18px; margin-top:4px}
+  .hero-small{
+    position:absolute; right:12px; top:16px; text-align:right; color:#fff; opacity:.9; font-weight:700;
+  }
+  .next-pot{
+    position:absolute; left:50%; transform:translateX(-50%);
+    bottom:-18px; background:#2c2c2c; color:#fff; border-radius:16px; padding:10px 14px; font-weight:800;
+    box-shadow:0 10px 24px rgba(0,0,0,.25);
+  }
+  .next-pot b{background:#fff;color:#111;padding:6px 10px;border-radius:10px;margin-left:8px}
+  .controls{
+    margin-top:34px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center;
+  }
+  button, select, label.switch{
+    border:1px solid var(--line); background:#fff; color:var(--text);
+    padding:10px 14px; border-radius:12px; font-weight:800; cursor:pointer;
+  }
+  .primary{background:#111;color:#fff;border-color:#111}
+  .ok{background:var(--ok); color:#fff; border:0}
+  .danger{background:var(--danger); color:#fff; border:0}
+  .meta{display:flex; justify-content:center; gap:12px; color:#666; font-weight:700; margin-top:8px}
+  /* board */
+  .panel{background:#fff; border:1px solid var(--line); border-radius:16px; padding:12px; margin-top:12px}
+  .grid{display:grid; grid-template-columns:repeat(10,1fr); gap:8px}
+  .cell{
+    aspect-ratio:1.32/1; display:grid; place-items:center; border:1px solid var(--line);
+    border-radius:10px; background:#f7f7f7; font-weight:900; font-size:clamp(16px,2.2vw,22px);
+    transition:transform .15s, background .15s, color .15s;
+  }
+  .cell.called{transform:translateY(-1px); color:#fff; background:#ff9a46}
+  .cell.current{outline:3px solid #fff; box-shadow:0 0 0 3px rgba(0,0,0,.2) inset}
+  .bar{height:10px;border-radius:8px;background:#eee;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22c55e,#16a34a)}
+  /* bottom bar */
+  .bottom{
+    position:sticky; bottom:0; background:#fff; border-top:1px solid var(--line);
+    padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .buy{background:linear-gradient(135deg,var(--orange1),var(--orange2)); color:#fff; font-weight:900;
+    border:none; padding:12px 18px; border-radius:12px}
+  .muted{color:#6b7280}
+</style>
 </head>
 <body>
-  <header>
-    <div class="brand">
-      <div class="badge">90</div>
-      <div>
-        <h1>Bingo / Housie Caller</h1>
-        <div style="color:var(--muted);font-weight:600;">Numbers 1–90 • Rainbow decades</div>
-      </div>
-    </div>
-    <div class="controls">
-      <button id="btnPrev" title="Undo (Z)">Undo</button>
-      <button id="btnNext" class="primary" title="Next (Space)">Next</button>
-      <button id="btnAuto" class="ok" title="Toggle Auto (A)">Auto: Off</button>
-      <button id="btnReset" class="danger" title="Reset (R)">Reset</button>
-    </div>
-  </header>
 
-  <div class="pane">
-    <div class="row">
-      <label for="speed">Speed</label>
-      <input id="speed" type="range" min="0.8" max="8" step="0.2" value="3">
-      <span id="speedLbl" class="chip">3s</span>
-    </div>
-    <div class="row">
-      <label for="theme">Theme</label>
-      <select id="theme">
-        <option value="dark">Dark</option>
-        <option value="light">Light</option>
-      </select>
-    </div>
-    <label class="switch"><input id="voice" type="checkbox"> Voice</label>
-    <div class="grow"></div>
-    <div class="row" title="Progress">
-      <div class="bar" style="width:min(440px,60vw)"><i id="progress"></i></div>
-      <span id="count" class="chip">0 / 90</span>
+  <div class="topbar">
+    <button class="btn" id="menuBtn">Menu</button>
+    <div style="font-weight:900;letter-spacing:.3px">Bingo</div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button id="undoBtn" class="btn" title="Undo (Z)">Undo</button>
+      <button id="nextBtn" class="btn" style="background:#111;border-color:#111">Next</button>
     </div>
   </div>
 
   <div class="wrap">
-    <section class="current">
-      <div class="big"><span id="current">—</span> <small id="pronounce"></small></div>
-      <div>
-        <div style="font-weight:700;margin-bottom:8px">Last calls</div>
-        <div id="history" class="history"></div>
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="side-wrap" id="leftBubbles"></div>
+        <div class="ball" id="currentBall">—</div>
+        <div class="side-wrap" id="rightBubbles" style="justify-content:flex-start"></div>
       </div>
-      <div>
-        <div style="font-weight:700;margin-bottom:8px">Decade colors</div>
-        <div class="legend">
-          <span class="chip" style="background:var(--d0)">1–10</span>
-          <span class="chip" style="background:var(--d1)">11–20</span>
-          <span class="chip" style="background:var(--d2)">21–30</span>
-          <span class="chip" style="background:var(--d3)">31–40</span>
-          <span class="chip" style="background:var(--d4)">41–50</span>
-          <span class="chip" style="background:var(--d5)">51–60</span>
-          <span class="chip" style="background:var(--d6)">61–70</span>
-          <span class="chip" style="background:var(--d7)">71–80</span>
-          <span class="chip" style="background:var(--d8)">81–90</span>
-        </div>
+
+      <div class="stat-col">
+        <div class="pill"><span class="muted" style="font-weight:800">IN PROGRESS</span><b id="p1">₹ 12,588.56</b><small>Unique line</small></div>
+        <div class="pill"><b id="p2">₹ 25,176.97</b><small>Double line</small></div>
+        <div class="pill"><b id="p3">₹ 46,157.91</b><small>Bingo</small></div>
       </div>
-      <div class="row" style="color:var(--muted)">
-        Shortcuts:
-        <span class="kbd">Space</span> next
-        <span class="kbd">A</span> auto
-        <span class="kbd">Z</span> undo
-        <span class="kbd">R</span> reset
+
+      <div class="hero-small" id="smallStats">
+        <div>Drawn: <span id="drawn">0</span> / 90</div>
+        <div>Players: <span id="players">408</span></div>
       </div>
+
+      <div class="next-pot">NEXT ROUND: <b id="nextPot">₹ 68,970.30</b></div>
     </section>
 
-    <section class="board">
-      <div id="grid" class="grid" aria-label="Number board"></div>
-    </section>
+    <!-- CONTROLS -->
+    <div class="controls">
+      <button id="autoBtn" class="ok">Auto: Off</button>
+      <label>Speed <input id="speed" type="range" min="0.8" max="8" step="0.2" value="3"></label>
+      <label><input id="voice" type="checkbox"> Voice</label>
+      <button id="resetBtn" class="danger">Reset</button>
+    </div>
+    <div class="meta">
+      <div class="bar" style="width:min(420px,70vw)"><i id="progress"></i></div>
+      <div id="count">0 / 90</div>
+    </div>
+
+    <!-- BOARD -->
+    <div class="panel">
+      <div class="grid" id="grid"></div>
+    </div>
   </div>
 
-  <footer>
-    <div style="font-weight:700">Tip:</div>
-    Use <em>Auto</em> + speed, or press <span class="kbd">Space</span> to call the next number manually. State is saved automatically.
-  </footer>
+  <!-- BOTTOM BAR -->
+  <div class="bottom">
+    <div>
+      <div class="muted" style="font-weight:800">Cards: <span id="cards">0</span></div>
+      <div class="muted">Balance: ₹ <span id="bal">0.55</span></div>
+      <div class="muted" style="font-size:12px">Round: <span id="round">147076</span></div>
+    </div>
+    <button class="buy">Buy Cards</button>
+  </div>
 
 <script>
 (() => {
-  const TOTAL = 90, COLS = 10, ROWS = 9;
-  const els = {
-    grid: document.getElementById('grid'),
-    current: document.getElementById('current'),
-    pronounce: document.getElementById('pronounce'),
-    history: document.getElementById('history'),
-    btnNext: document.getElementById('btnNext'),
-    btnPrev: document.getElementById('btnPrev'),
-    btnReset: document.getElementById('btnReset'),
-    btnAuto: document.getElementById('btnAuto'),
-    speed: document.getElementById('speed'),
-    speedLbl: document.getElementById('speedLbl'),
-    progress: document.getElementById('progress'),
-    count: document.getElementById('count'),
-    theme: document.getElementById('theme'),
-    voice: document.getElementById('voice')
+  const TOTAL=90, COLS=10, ROWS=9;
+  const el = (id)=>document.getElementById(id);
+  const ui = {
+    grid: el('grid'), ball: el('currentBall'),
+    drawn: el('drawn'), count: el('count'), progress: el('progress'),
+    nextBtn: el('nextBtn'), undoBtn: el('undoBtn'), resetBtn: el('resetBtn'),
+    autoBtn: el('autoBtn'), speed: el('speed'), voice: el('voice'),
+    leftB: el('leftBubbles'), rightB: el('rightBubbles')
   };
 
-  const storeKey = 'bingo90.v1';
-  const settingsKey = 'bingo90.settings';
-  let state = {
-    pile: [],    // remaining numbers (top at end)
-    called: [],  // called numbers (last is current)
-  };
-  let timer = null;
-  let voices = [];
-  let speaking = false;
+  let state = { pile:[], called:[] };
+  let timer=null, speaking=false;
 
-  // ---------- Utilities ----------
-  const shuffle = (arr) => {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  };
-  const decadeIndex = (n) => Math.floor((n - 1) / 10); // 0..8
-  const classForDecade = (n, prefix='bg') => `${prefix}-d${decadeIndex(n)}`;
+  const shuffle=(a)=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+  const save=()=>localStorage.setItem('bingo_orange.v1', JSON.stringify(state));
+  const load=()=>{ const s=localStorage.getItem('bingo_orange.v1'); if(s){ try{state=JSON.parse(s)}catch{} } if(!state.pile.length && !state.called.length){ reset(true) } };
 
-  const saveState = () => localStorage.setItem(storeKey, JSON.stringify(state));
-  const loadState = () => {
-    const saved = localStorage.getItem(storeKey);
-    if (saved) {
-      try {
-        const s = JSON.parse(saved);
-        if (Array.isArray(s.pile) && Array.isArray(s.called)) {
-          state = s;
-        }
-      } catch {}
-    }
-    if (!state.pile.length && !state.called.length) reset(true);
-  };
-
-  const saveSettings = () => {
-    localStorage.setItem(settingsKey, JSON.stringify({
-      theme: document.documentElement.getAttribute('data-theme'),
-      speed: +els.speed.value,
-      voice: !!els.voice.checked
-    }));
-  };
-  const loadSettings = () => {
-    const s = localStorage.getItem(settingsKey);
-    if (s) {
-      try {
-        const { theme, speed, voice } = JSON.parse(s);
-        if (theme) {
-          document.documentElement.setAttribute('data-theme', theme);
-          els.theme.value = theme;
-        }
-        if (speed) {
-          els.speed.value = speed;
-          els.speedLbl.textContent = `${speed}s`;
-        }
-        if (typeof voice === 'boolean') els.voice.checked = voice;
-      } catch {}
-    }
-  };
-
-  // ---------- Rendering ----------
-  const buildGrid = () => {
-    els.grid.innerHTML = '';
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const n = r * COLS + (c + 1);
-        const cell = document.createElement('button');
-        cell.className = `cell`;
-        cell.setAttribute('type','button');
-        cell.setAttribute('aria-label', `Number ${n}`);
-        cell.dataset.n = n;
-        cell.innerHTML = `<span>${n}</span><i class="dot ${'dot-'+classForDecade(n,'d')}"></i>`;
-        // hide the dot inside span, not visible text
-        cell.querySelector('.dot').classList.add(`dot-d${decadeIndex(n)}`);
-        els.grid.appendChild(cell);
+  function buildGrid(){
+    ui.grid.innerHTML='';
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        const n=r*COLS+(c+1);
+        const b=document.createElement('button');
+        b.className='cell'; b.textContent=n; b.dataset.n=n; b.type='button';
+        ui.grid.appendChild(b);
       }
     }
-  };
+  }
 
-  const updateBoard = () => {
-    const calledSet = new Set(state.called);
-    const current = state.called[state.called.length - 1] || null;
+  function updateBoard(){
+    const calledSet=new Set(state.called);
+    const current=state.called[state.called.length-1]||null;
 
-    els.grid.querySelectorAll('.cell').forEach(cell => {
-      const n = +cell.dataset.n;
+    ui.grid.querySelectorAll('.cell').forEach(cell=>{
+      const n=+cell.dataset.n;
       cell.classList.toggle('called', calledSet.has(n));
-      cell.classList.toggle('current', n === current);
-      // color when called
-      cell.style.background = calledSet.has(n) ? '' : '';
-      if (calledSet.has(n)) {
-        // add decade bg class
-        cell.classList.add(classForDecade(n));
-        cell.classList.add(`bg-d${decadeIndex(n)}`);
-        cell.style.setProperty('background','');
-      } else {
-        // remove decade bg class
-        cell.classList.remove('bg-d0','bg-d1','bg-d2','bg-d3','bg-d4','bg-d5','bg-d6','bg-d7','bg-d8');
-      }
+      cell.classList.toggle('current', n===current);
     });
 
-    // current number display
-    if (current) {
-      els.current.textContent = current;
-      els.pronounce.textContent = pronounce(current);
-    } else {
-      els.current.textContent = '—';
-      els.pronounce.textContent = '';
-    }
+    ui.ball.textContent=current || '—';
+    ui.drawn.textContent=state.called.length;
+    ui.count.textContent=`${state.called.length} / ${TOTAL}`;
+    ui.progress.style.width = `${(state.called.length/TOTAL)*100}%`;
 
-    // history (last 12)
-    els.history.innerHTML = '';
-    const last = state.called.slice(-12).reverse();
-    for (const n of last) {
-      const chip = document.createElement('span');
-      chip.className = `chip`;
-      chip.style.background = `var(--d${decadeIndex(n)})`;
-      chip.style.color = '#fff';
-      chip.textContent = n;
-      els.history.appendChild(chip);
-    }
+    // side bubbles (last two)
+    const last=state.called.slice(-3).reverse(); // show up to 2 beside
+    const left = last[1]!=null ? [last[1]]: [];
+    const right = last[0]!=null ? [last[0]]: [];
+    ui.leftB.innerHTML=''; ui.rightB.innerHTML='';
+    left.forEach(n=>ui.leftB.appendChild(makeBubble(n)));
+    right.forEach(n=>ui.rightB.appendChild(makeBubble(n)));
 
-    // progress
-    const done = state.called.length;
-    els.count.textContent = `${done} / ${TOTAL}`;
-    els.progress.style.width = `${(done/TOTAL)*100}%`;
+    ui.undoBtn.disabled = state.called.length===0;
+    ui.nextBtn.disabled = state.pile.length===0;
+    if(state.pile.length===0){ stopAuto(); ui.autoBtn.textContent='Auto: Done' }
+  }
 
-    // buttons
-    els.btnPrev.disabled = done === 0;
-    els.btnNext.disabled = state.pile.length === 0;
-    if (state.pile.length === 0) {
-      stopAuto();
-      els.btnAuto.textContent = 'Auto: Done';
-      els.btnAuto.className = 'ok';
-    } else {
-      updateAutoButton();
-    }
-  };
+  function makeBubble(n){
+    const d=document.createElement('div'); d.className='side-bubble'; d.textContent=n; return d;
+  }
 
-  // ---------- Number logic ----------
-  const reset = (silent=false) => {
-    const nums = Array.from({length: TOTAL}, (_,i) => i+1);
-    state.called = [];
-    state.pile = shuffle(nums);
-    saveState();
-    stopAuto();
-    if (!silent) toast('Shuffled a fresh deck.');
-    updateBoard();
-  };
+  function next(){
+    if(!state.pile.length){updateBoard();return;}
+    const n=state.pile.pop(); state.called.push(n); save(); updateBoard(); if(ui.voice.checked) speak(n);
+    const currentCell=document.querySelector('.cell.current'); if(currentCell && innerWidth<720) currentCell.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  function undo(){
+    const n=state.called.pop(); if(n!=null){ state.pile.push(n); save(); updateBoard(); }
+  }
+  function reset(silent=false){
+    state.called=[]; state.pile=shuffle(Array.from({length:TOTAL},(_,i)=>i+1)); save(); stopAuto(); if(!silent) toast('New round ready.'); updateBoard();
+  }
 
-  const next = () => {
-    if (!state.pile.length) { updateBoard(); return; }
-    const n = state.pile.pop();
-    state.called.push(n);
-    saveState();
-    updateBoard();
-    if (els.voice.checked) speak(n);
-    // scroll current number into view on small screens
-    const currentCell = els.grid.querySelector('.cell.current');
-    if (currentCell && window.innerWidth < 700) currentCell.scrollIntoView({behavior:'smooth', block:'center'});
-  };
+  function startAuto(){ if(timer) return; const ms=Math.max(0.2,+ui.speed.value)*1000; timer=setInterval(()=>{ if(!state.pile.length){stopAuto();} next(); }, ms); ui.autoBtn.textContent='Auto: On'; }
+  function stopAuto(){ if(timer){clearInterval(timer); timer=null; ui.autoBtn.textContent='Auto: Off';} }
 
-  const undo = () => {
-    const n = state.called.pop();
-    if (n != null) {
-      state.pile.push(n); // return to top to replay in same order
-      saveState();
-      updateBoard();
-    }
-  };
+  function speak(n){
+    if(!('speechSynthesis' in window)) return;
+    if(speaking){ window.speechSynthesis.cancel(); speaking=false; }
+    const u=new SpeechSynthesisUtterance(`Number ${n}`);
+    const vs=speechSynthesis.getVoices();
+    const pick=vs.find(v=>/India|en-IN/i.test(v.lang||v.name)) || vs.find(v=>/^en[-_]/i.test(v.lang));
+    if(pick) u.voice=pick; u.rate=.95; u.pitch=1.02; speaking=true; u.onend=()=>speaking=false; speechSynthesis.speak(u);
+  }
 
-  // ---------- Auto mode ----------
-  const startAuto = () => {
-    if (timer) return;
-    const interval = Math.max(0.2, +els.speed.value) * 1000;
-    timer = setInterval(() => {
-      if (!state.pile.length) { stopAuto(); updateBoard(); return; }
-      next();
-    }, interval);
-    updateAutoButton();
-  };
-  const stopAuto = () => {
-    if (timer) { clearInterval(timer); timer = null; updateAutoButton(); }
-  };
-  const toggleAuto = () => timer ? stopAuto() : startAuto();
-  const updateAutoButton = () => {
-    if (timer) { els.btnAuto.textContent = 'Auto: On'; els.btnAuto.className = 'ok'; }
-    else { els.btnAuto.textContent = state.pile.length ? 'Auto: Off' : 'Auto: Done'; els.btnAuto.className = 'ok'; }
-  };
-
-  // ---------- Voice ----------
-  const pronounce = (n) => {
-    // Simple: return the English number string
-    return new Intl.NumberFormat('en-IN').format(n);
-  };
-
-  const loadVoices = () => {
-    voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-  };
-  const speak = (n) => {
-    if (!('speechSynthesis' in window)) return;
-    if (speaking) { window.speechSynthesis.cancel(); speaking = false; }
-    const u = new SpeechSynthesisUtterance(`Number ${n}`);
-    // Prefer an English (India) or English voice if available
-    const pick = voices.find(v => /India|en-IN/i.test(v.lang||v.name)) ||
-                 voices.find(v => /^en[-_]/i.test(v.lang)) || null;
-    if (pick) u.voice = pick;
-    u.rate = 0.92; u.pitch = 1.02; u.volume = 1;
-    speaking = true;
-    u.onend = () => speaking = false;
-    try { window.speechSynthesis.speak(u); } catch {}
-  };
-
-  // ---------- Small helpers ----------
+  // tiny toast
   let toastTimer=null;
-  const toast = (msg) => {
-    if (toastTimer) clearTimeout(toastTimer);
-    let el = document.getElementById('toast');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'toast';
-      Object.assign(el.style, {
-        position:'fixed', left:'50%', bottom:'24px', transform:'translateX(-50%)',
-        background:'var(--panel)', color:'var(--text)', border:'1px solid var(--line)',
-        padding:'10px 14px', borderRadius:'10px', boxShadow:'var(--shadow)', zIndex:9999,
-        pointerEvents:'none'
-      });
-      document.body.appendChild(el);
-    }
-    el.textContent = msg;
-    el.style.opacity = '1';
-    toastTimer = setTimeout(()=> el.style.opacity='0', 1400);
-  };
+  function toast(msg){
+    if(toastTimer) clearTimeout(toastTimer);
+    let t=document.getElementById('toast'); if(!t){ t=document.createElement('div'); t.id='toast';
+      Object.assign(t.style,{position:'fixed',left:'50%',bottom:'22px',transform:'translateX(-50%)',
+        background:'#111',color:'#fff',padding:'10px 14px',borderRadius:'10px',zIndex:50,boxShadow:'0 8px 20px rgba(0,0,0,.25)'}); document.body.appendChild(t);}
+    t.textContent=msg; t.style.opacity='1'; toastTimer=setTimeout(()=>t.style.opacity='0',1400);
+  }
 
-  // ---------- Wire up ----------
-  const init = () => {
-    buildGrid();
-    loadSettings();
-    loadState();
-    updateBoard();
-
-    els.btnNext.addEventListener('click', next);
-    els.btnPrev.addEventListener('click', undo);
-    els.btnReset.addEventListener('click', () => {
-      if (confirm('Reset and reshuffle all 90 numbers?')) { reset(); }
+  function init(){
+    buildGrid(); load(); updateBoard();
+    ui.nextBtn.onclick=next; ui.undoBtn.onclick=undo; ui.resetBtn.onclick=()=>confirm('Reset numbers?')&&reset();
+    ui.autoBtn.onclick=()=> timer?stopAuto():startAuto();
+    ui.speed.oninput=()=>{ if(timer){stopAuto(); startAuto();} };
+    window.addEventListener('keydown',(e)=>{ if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+      if(e.code==='Space'){e.preventDefault(); next();}
+      else if(/^[aA]$/.test(e.key)) timer?stopAuto():startAuto();
+      else if(/^[zZ]$/.test(e.key)) undo();
+      else if(/^[rR]$/.test(e.key)) confirm('Reset numbers?')&&reset();
     });
-    els.btnAuto.addEventListener('click', toggleAuto);
-
-    els.speed.addEventListener('input', () => {
-      els.speedLbl.textContent = `${els.speed.value}s`;
-      saveSettings();
-      if (timer) { stopAuto(); startAuto(); }
-    });
-
-    els.theme.addEventListener('change', () => {
-      document.documentElement.setAttribute('data-theme', els.theme.value);
-      saveSettings();
-    });
-
-    els.voice.addEventListener('change', () => {
-      if (els.voice.checked && !('speechSynthesis' in window))
-        { alert('Speech not supported in this browser.'); els.voice.checked=false; }
-      saveSettings();
-    });
-
-    // keyboard shortcuts
-    window.addEventListener('keydown', (e) => {
-      if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
-      if (e.code === 'Space') { e.preventDefault(); next(); }
-      else if (e.key === 'a' || e.key === 'A') { toggleAuto(); }
-      else if (e.key === 'z' || e.key === 'Z') { undo(); }
-      else if (e.key === 'r' || e.key === 'R') { if (confirm('Reset and reshuffle all 90 numbers?')) reset(); }
-    });
-
-    // voice list ready?
-    if ('speechSynthesis' in window) {
-      loadVoices();
-      window.speechSynthesis.onvoiceschanged = loadVoices;
-    }
-  };
-
+  }
   init();
 })();
 </script>
